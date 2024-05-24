@@ -1,0 +1,9 @@
+.navbar {
+    display: flex;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #f0f0f0; /* Light grey background */
+    padding: 10px 0; /* Some padding */
+}
