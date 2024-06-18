@@ -1,67 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import './Home.css';
+import supabase from "../services/supabase";
 
 function Home() {
-    const [profile, setProfile] = useState({
-        profilePic: '',
-        banner: '',
-        name: '',
-        school: '',
-        graduationYear: '',
-        bio: '',
-        major: '',
-        pronouns: '',
-        favoriteCoffee: '',
-        coursework: '',
-        watched: '',
-        read: '',
-        listened: ''
-    });
+    const [profiles, setProfiles] = useState([]); // Stores all profiles for dropdown
+    const [selectedUserId, setSelectedUserId] = useState(''); // Currently selected user ID
+    const [profileDetails, setProfileDetails] = useState(null); // Details of the selected profile
 
+    // Fetch all profiles to populate the dropdown
     useEffect(() => {
-        const storedProfile = localStorage.getItem('userProfile');
-        if (storedProfile) {
-            setProfile(JSON.parse(storedProfile));
+        async function fetchProfiles() {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('user_id, name'); // Select both user_id and name
+            if (error) {
+                console.error('Error fetching profiles', error);
+            } else {
+                setProfiles(data);
+            }
         }
+
+        fetchProfiles();
     }, []);
 
-    const handleInputChange = (event) => {
-        const { name, value } = event.target;
-        setProfile(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
-    };
+    // Fetch details of the selected profile
+    useEffect(() => {
+        async function fetchProfileDetails() {
+            if (selectedUserId) {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', selectedUserId)
+                    .single();
 
-    const handleSave = () => {
-        localStorage.setItem('userProfile', JSON.stringify(profile));
-    };
+                if (error) {
+                    console.error('Error fetching profile details', error);
+                    setProfileDetails(null);
+                } else {
+                    setProfileDetails(data);
+                }
+            }
+        }
+
+        fetchProfileDetails();
+    }, [selectedUserId]);
 
     return (
         <div className="profile-container">
-            <button onClick={handleSave} className="gear-button">G</button>
-            <div className="profile-banner">
-                <img src={profile.banner} className="banner-image" alt="Banner"/>
-                <img src={profile.profilePic} className="profile-picture" alt="Profile"/>
-            </div>
-            <div className="profile-info">
-                <h1>{profile.name}</h1>
-                <h2>{profile.school}, {profile.graduationYear}</h2>
-                <p>{profile.bio}</p>
-            </div>
-            <div className="profile-details">
-                <div>{profile.major}</div>
-                <div>{profile.pronouns}</div>
-                <div>{profile.favoriteCoffee}</div>
-            </div>
-            <div className="profile-coursework">
-                <div>{profile.coursework}</div>
-            </div>
-            <div className="profile-media">
-                <div>Watched: {profile.watched}</div>
-                <div>Read: {profile.read}</div>
-                <div>Listened: {profile.listened}</div>
-            </div>
+            <select
+                value={selectedUserId}
+                onChange={e => setSelectedUserId(e.target.value)}
+                className="user-select"
+            >
+                <option value="">Choose a user...</option>
+                {profiles.map(profile => (
+                    <option key={profile.user_id} value={profile.user_id}>
+                        {profile.name || `User ${profile.user_id}`}
+                    </option>
+                ))}
+            </select>
+
+            {profileDetails && (
+                <div className="profile-details">
+                    <img src={profileDetails.profile_picture_url} alt="Profile" className="profile-picture"/>
+                    <img src={profileDetails.banner_url} alt="Banner" className="profile-banner"/>
+                    <p><strong>Name:</strong> {profileDetails.name}</p>
+                    <p><strong>Bio:</strong> {profileDetails.bio}</p>
+                    <p><strong>Favorite Book:</strong> {profileDetails.favorite_book}</p>
+                </div>
+            )}
         </div>
     );
 }
